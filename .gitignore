@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Node.js
+node_modules/
+dist/
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# OceanAI Specific
+Backend/venv/
+Backend/.env
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.npm-cache/
