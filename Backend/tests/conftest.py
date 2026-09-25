@@ -3,6 +3,11 @@ import os
 os.environ.setdefault("SECRET_KEY", "integration-test-secret-key-must-be-at-least-32-chars")
 os.environ.setdefault("DATABASE_URL", "sqlite://")
 os.environ.setdefault("LLM_PROVIDER", "ollama")
+os.environ.setdefault(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://localhost:8080,"
+    "https://draftly-o5wf.onrender.com",
+)
 
 import pytest
 from fastapi.testclient import TestClient

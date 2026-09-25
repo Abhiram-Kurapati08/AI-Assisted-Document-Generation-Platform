@@ -61,19 +61,23 @@ def test_invalid_and_expired_access_tokens_are_rejected(client, user_factory):
     assert client.post("/auth/refresh", json={"refresh_token": "not-a-jwt"}).status_code == 401
 
 
-def test_cors_accepts_only_configured_origins(client):
-    from app.config import settings
-
-    allowed_origin = settings.CORS_ORIGINS.split(",")[0].strip()
+def test_cors_accepts_production_preflight_and_rejects_unknown_origins(client):
+    allowed_origin = "https://draftly-o5wf.onrender.com"
     allowed = client.options(
-        "/projects/",
+        "/auth/register",
         headers={
             "Origin": allowed_origin,
-            "Access-Control-Request-Method": "GET",
-            "Access-Control-Request-Headers": "authorization",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type",
         },
     )
+    assert allowed.status_code == 200
     assert allowed.headers.get("access-control-allow-origin") == allowed_origin
+    assert allowed.headers.get("access-control-allow-credentials") == "true"
+    assert "POST" in allowed.headers.get("access-control-allow-methods", "")
+    assert "OPTIONS" in allowed.headers.get("access-control-allow-methods", "")
+    assert "authorization" in allowed.headers.get("access-control-allow-headers", "").lower()
+    assert "content-type" in allowed.headers.get("access-control-allow-headers", "").lower()
 
     rejected = client.options(
         "/projects/",

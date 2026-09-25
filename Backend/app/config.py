@@ -15,7 +15,10 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str
-    CORS_ORIGINS: str = "http://localhost:5173"
+    CORS_ORIGINS: str = (
+        "http://localhost:5173,http://localhost:8080,"
+        "https://draftly-o5wf.onrender.com"
+    )
     
     # LLM Configuration
     LLM_PROVIDER: str = "ollama"  # Supported: 'gemini' or 'ollama'.
