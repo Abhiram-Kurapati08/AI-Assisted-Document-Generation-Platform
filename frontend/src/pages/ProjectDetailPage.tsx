@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
-import api from "../lib/api";
+import api, { getApiErrorMessage } from "../lib/api";
 import type { Project, Section, SectionListResponse } from "../types";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -55,9 +55,8 @@ export const ProjectDetailPage = () => {
     try {
       const { data } = await api.get<Project>(`/projects/${projectId}`);
       setProject(data);
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? "Unable to load project";
-      setError(msg);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Unable to load project"));
     }
   };
 
@@ -71,9 +70,8 @@ export const ProjectDetailPage = () => {
         { params: { limit: 100 } }
       );
       setSections(data.items ?? []);
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? "Unable to load sections";
-      setError(msg);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Unable to load sections"));
     } finally {
       setLoading(false);
     }
@@ -110,9 +108,8 @@ export const ProjectDetailPage = () => {
       setSectionForm(emptySection);
       setIsAddSectionOpen(false);
       await fetchSections();
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? "Unable to create section";
-      addToast("error", msg);
+    } catch (err: unknown) {
+      addToast("error", getApiErrorMessage(err, "Unable to create section"));
     } finally {
       setSavingSection(false);
     }
@@ -128,9 +125,8 @@ export const ProjectDetailPage = () => {
       });
       addToast("success", "Section content saved!");
       await fetchSections();
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? "Unable to update section";
-      addToast("error", msg);
+    } catch (err: unknown) {
+      addToast("error", getApiErrorMessage(err, "Unable to update section"));
     } finally {
       setSavingSection(false);
     }
@@ -152,9 +148,8 @@ export const ProjectDetailPage = () => {
       addToast("success", "AI generated content for section!");
       await fetchSections();
       setActiveAiTab("edit");
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? "Unable to generate content";
-      addToast("error", msg);
+    } catch (err: unknown) {
+      addToast("error", getApiErrorMessage(err, "Unable to generate content"));
     } finally {
       setLlmBusy(false);
     }
@@ -168,7 +163,6 @@ export const ProjectDetailPage = () => {
         `/projects/${projectId}/sections/${selectedSection.id}/refine/`,
         {
           refine_instruction: refinePrompt,
-          prompt: selectedSection.content,
           preserve_formatting: true,
           temperature: 0.6,
           max_tokens: 800,
@@ -179,9 +173,8 @@ export const ProjectDetailPage = () => {
       await fetchSections();
       setRefinePrompt("");
       setActiveAiTab("edit");
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? "Unable to refine content";
-      addToast("error", msg);
+    } catch (err: unknown) {
+      addToast("error", getApiErrorMessage(err, "Unable to refine content"));
     } finally {
       setLlmBusy(false);
     }
@@ -211,9 +204,8 @@ export const ProjectDetailPage = () => {
       link.click();
       window.URL.revokeObjectURL(url);
       addToast("success", `Downloaded ${exportFormat.toUpperCase()} file!`);
-    } catch (err: any) {
-      const msg = err.message ?? "Unable to download export";
-      addToast("error", msg);
+    } catch (err: unknown) {
+      addToast("error", getApiErrorMessage(err, "Unable to download export"));
     } finally {
       setExporting(false);
     }

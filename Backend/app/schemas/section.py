@@ -41,10 +41,12 @@ class SectionGenerateRequest(BaseModel):
     temperature: float = Field(0.7, ge=0.0, le=1.0, description="Creativity level (0.0 to 1.0)")
     max_tokens: int = Field(1000, ge=100, le=4000, description="Maximum number of tokens to generate")
 
-class SectionRefineRequest(SectionGenerateRequest):
+class SectionRefineRequest(BaseModel):
     refine_instruction: str = Field(..., min_length=10, max_length=1000, 
                                   description="Instructions for refining the content")
     preserve_formatting: bool = True
+    temperature: float = Field(0.7, ge=0.0, le=1.0, description="Creativity level (0.0 to 1.0)")
+    max_tokens: int = Field(1000, ge=100, le=4000, description="Maximum number of tokens to generate")
 
 class SectionContentUpdate(BaseModel):
     content: str = Field(..., min_length=1, description="Updated section content")

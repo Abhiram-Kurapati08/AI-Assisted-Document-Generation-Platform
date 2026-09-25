@@ -154,8 +154,8 @@ def test_edit_section_and_refine_saves_revision(client, user_factory, monkeypatc
         f"/projects/{project_id}/sections/{section_id}/refine/",
         headers=headers,
         json={
-            "prompt": "Keep the meaning and improve the flow",
             "refine_instruction": "Make this clearer and more professional",
+            "preserve_formatting": True,
             "temperature": 0.5,
             "max_tokens": 300,
         },
@@ -168,6 +168,69 @@ def test_edit_section_and_refine_saves_revision(client, user_factory, monkeypatc
         assert db.query(models.Revision).count() == 1
     finally:
         db.close()
+
+
+def test_invalid_refine_request_returns_readable_fastapi_validation_error(client, user_factory):
+    tokens = user_factory("invalid-refine@example.com")
+    project_id = create_project(client, tokens["access_token"], "Validation sample")
+    headers = auth(tokens["access_token"])
+    section = client.post(
+        f"/projects/{project_id}/sections/",
+        headers=headers,
+        json={"title": "Overview", "content": "Draft", "idx": 0},
+    )
+    assert section.status_code == 201, section.text
+
+    response = client.post(
+        f"/projects/{project_id}/sections/{section.json()['id']}/refine/",
+        headers=headers,
+        json={"refine_instruction": "short", "max_tokens": 300},
+    )
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert isinstance(detail, list)
+    assert detail[0]["loc"] == ["body", "refine_instruction"]
+    assert "at least 10 characters" in detail[0]["msg"]
+
+
+def test_refresh_then_refine_with_new_access_token(client, user_factory, monkeypatch):
+    class FakeProvider:
+        async def generate_text(self, **_kwargs):
+            return "Refined after refresh"
+
+    monkeypatch.setattr(
+        "app.services.section_service.get_llm_provider", lambda: FakeProvider()
+    )
+    tokens = user_factory("refresh-refine@example.com")
+    project_id = create_project(client, tokens["access_token"], "Refresh sample")
+    headers = auth(tokens["access_token"])
+    section = client.post(
+        f"/projects/{project_id}/sections/",
+        headers=headers,
+        json={"title": "Overview", "content": "Draft content", "idx": 0},
+    )
+    assert section.status_code == 201, section.text
+
+    db = next(app.dependency_overrides[get_db]())
+    try:
+        user = db.query(models.User).filter_by(email="refresh-refine@example.com").one()
+    finally:
+        db.close()
+    expired_access_token = create_access_token(
+        {"sub": str(user.id), "email": user.email},
+        expires_delta=timedelta(seconds=-1),
+    )
+    endpoint = f"/projects/{project_id}/sections/{section.json()['id']}/refine/"
+    payload = {"refine_instruction": "Make this clearer and more professional", "max_tokens": 300}
+
+    assert client.post(endpoint, headers=auth(expired_access_token), json=payload).status_code == 401
+    refreshed = client.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
+    assert refreshed.status_code == 200, refreshed.text
+
+    refined = client.post(endpoint, headers=auth(refreshed.json()["access_token"]), json=payload)
+    assert refined.status_code == 200, refined.text
+    assert refined.json()["content"] == "Refined after refresh"
 
 
 def test_missing_provider_configuration_returns_503_without_crashing(client, user_factory, monkeypatch):
