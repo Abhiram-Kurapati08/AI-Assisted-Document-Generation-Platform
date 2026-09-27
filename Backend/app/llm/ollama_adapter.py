@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+# pyrefly: ignore [missing-import]
 import httpx
 from typing import Any, Dict, List
 

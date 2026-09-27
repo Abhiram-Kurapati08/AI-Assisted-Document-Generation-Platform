@@ -1,80 +1,216 @@
+
+# Project Title
+
+A brief description of what this project does and who it's for
+
 # Draftly
 
-Draftly is an AI-assisted document authoring app. Users can create projects, generate and refine sections, and export documents as Word, PowerPoint, and plain text.
+Draftly is an AI-assisted workspace for creating business documents and presentations. Start with an idea, let AI create an outline and first draft, refine each section, and export the finished work.
 
-## Deploy with Docker Compose
+## Live demo
 
-Requirements: Docker Engine with the Compose plugin. Copy the environment template:
+Try the deployed app: **[draftly-o5wf.onrender.com](https://draftly-o5wf.onrender.com/)**
 
-```sh
-cp .env.example .env
+## What you can do
+
+- Create document or presentation projects in a private account workspace.
+- Start from a template or describe what you want to make.
+- Generate an outline and draft sections with AI.
+- Edit sections manually or ask AI to generate and refine individual sections.
+- Keep a revision history as AI updates are made.
+- Download projects as DOCX, PPTX, or TXT files.
+
+## How it works
+
+1. Create an account and start a project.
+2. Choose a document type, title, and prompt (or begin with a template).
+3. Generate an outline and initial sections with the configured AI provider.
+4. Review, edit, generate, or refine sections until the document is ready.
+5. Export the result in the format you need.
+
+## Tech stack
+
+| Area | Technology |
+| --- | --- |
+| Frontend | React, TypeScript, Vite, Axios |
+| Backend | FastAPI, SQLAlchemy, Alembic |
+| Database | PostgreSQL |
+| AI providers | Google Gemini or Ollama |
+| Exports | DOCX, PPTX, TXT |
+| Local containers | Docker Compose |
+
+## Run locally with Docker (recommended)
+
+### Prerequisites
+
+- Docker Engine with the Docker Compose plugin
+- An AI provider: a Gemini API key, or a reachable Ollama instance with a downloaded model
+
+### Start the project
+
+1. Copy the sample environment file.
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+   On macOS or Linux, use `cp .env.example .env` instead.
+
+2. Open `.env` and set these required values:
+
+   ```env
+   SECRET_KEY=use-a-random-string-with-at-least-32-characters
+   DB_PASSWORD=use-a-strong-alphanumeric-password
+   ```
+
+   To generate a suitable `SECRET_KEY`, run:
+
+   ```powershell
+   python -c "import secrets; print(secrets.token_urlsafe(48))"
+   ```
+
+3. Select an AI provider in `.env`:
+
+   ```env
+   # Option A: Gemini
+   LLM_PROVIDER=gemini
+   GEMINI_API_KEY=your-api-key
+
+   # Option B: Ollama
+   # LLM_PROVIDER=ollama
+   # OLLAMA_BASE_URL=http://host.docker.internal:11434
+   # OLLAMA_MODEL=llama3.2
+   ```
+
+4. Build and start the services.
+
+   ```powershell
+   docker compose up --build -d
+   ```
+
+5. Open [http://localhost:8080](http://localhost:8080).
+
+Useful commands:
+
+```powershell
+docker compose ps
+docker compose logs -f api
+docker compose down
 ```
 
-On Windows PowerShell, use `Copy-Item .env.example .env`. Generate `SECRET_KEY` with `python -c "import secrets; print(secrets.token_urlsafe(48))"` and set `DB_PASSWORD` to a strong alphanumeric password. The example leaves both blank so Compose refuses to start until you fill them in. `SECRET_KEY` must contain at least 32 characters.
+The API health endpoint is available at `http://localhost:8000/health` when the API is exposed directly by your environment. Docker stores database data in the `postgres_data` volume; keep a backup before making major upgrades.
 
-Start the stack:
+## Run without Docker
 
-```sh
-docker compose up --build -d
-```
+### Prerequisites
 
-Open `http://localhost:8080`. The frontend and API share one origin, the API waits for PostgreSQL, and Alembic applies pending migrations before the API starts. Check the stack with `docker compose ps` and API logs with `docker compose logs -f api`. Health is at `/health` and interactive API documentation is at `/docs`.
+- Python 3.10 or later
+- Node.js 20 or later
+- PostgreSQL
+- A Gemini API key or a local Ollama installation
 
-For a hosted deployment, terminate HTTPS at a trusted reverse proxy or load balancer. Set `CORS_ORIGINS` to the exact public frontend origin(s), without trailing slashes, and configure `APP_PORT` as needed. The supported `LLM_PROVIDER` values are `ollama` and `gemini`. Ollama defaults to `http://host.docker.internal:11434`; ensure the model is available and Ollama is reachable from the container. For Gemini, set `LLM_PROVIDER=gemini` and supply `GEMINI_API_KEY`. If the selected provider is misconfigured, the API still starts and generation returns a service unavailable response.
+### 1. Set up the backend
 
-PostgreSQL data is stored in the `postgres_data` Docker volume. Back it up before upgrades. Apply schema changes through new Alembic migrations.
-
-## Run locally without Docker
-
-Requirements: Python 3.10+, Node.js 20+, and PostgreSQL.
-
-### Backend
-
-```sh
+```powershell
 cd Backend
 python -m venv .venv
-# Windows: .venv\Scripts\Activate.ps1
-# macOS/Linux: source .venv/bin/activate
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-Create `Backend/.env` with a PostgreSQL URL and generated signing key:
+Create `Backend/.env`:
 
 ```env
 DATABASE_URL=postgresql+psycopg2://postgres:your_password@localhost:5432/document_ai
-SECRET_KEY=replace-this-with-the-generated-random-secret
+SECRET_KEY=replace-this-with-a-random-secret-of-at-least-32-characters
 CORS_ORIGINS=http://localhost:5173
-LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-OLLAMA_MODEL=llama3.2
-# For Gemini, set LLM_PROVIDER=gemini and GEMINI_API_KEY=your_key
+
+# Choose one provider
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=your-api-key
+GEMINI_MODEL=gemini-3.8-flash
+
+# Or use Ollama instead
+# LLM_PROVIDER=ollama
+# OLLAMA_BASE_URL=http://127.0.0.1:11434
+# OLLAMA_MODEL=llama3.2
 ```
 
-Run migrations and start the API:
+Apply database migrations and start the API:
 
-```sh
+```powershell
 alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-### Frontend
+The API runs at [http://localhost:8000](http://localhost:8000), with interactive documentation at [http://localhost:8000/docs](http://localhost:8000/docs).
 
-```sh
+### 2. Set up the frontend
+
+Open a second terminal:
+
+```powershell
 cd frontend
 npm ci
 ```
 
-Create `frontend/.env.local` with `VITE_API_URL=http://127.0.0.1:8000`, then run `npm run dev` and open `http://localhost:5173`.
+Create `frontend/.env.local`:
 
-## Checks
+```env
+VITE_API_URL=http://127.0.0.1:8000
+```
 
-Run `npm ci && npm run build` in `frontend`. In `Backend`, install test dependencies with `pip install -r requirements-dev.txt` and run `alembic upgrade head`, `python scripts/smoke_health.py`, and `pytest -q`. GitHub Actions runs these checks against a fresh PostgreSQL 16 service and builds the frontend for every push and pull request.
+Then start the app:
 
-The backend tests cover authentication, refresh rotation and logout revocation, expired and invalid JWTs, cross-user project read/update/delete attempts, section editing and revision creation, and DOCX/PPTX/TXT exports.
+```powershell
+npm run dev
+```
 
-## Stack
+Open [http://localhost:5173](http://localhost:5173).
 
-- Frontend: React, TypeScript, Vite, Axios
-- API: FastAPI, SQLAlchemy, Alembic
-- Database: PostgreSQL
-- AI: Ollama and Gemini adapters
+## Configuration reference
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | Backend only | PostgreSQL connection URL. Docker Compose creates this automatically. |
+| `SECRET_KEY` | Yes | Random key used to sign authentication tokens; minimum 32 characters. |
+| `DB_PASSWORD` | Docker only | Password for the Compose PostgreSQL service. |
+| `CORS_ORIGINS` | Production | Comma-separated frontend origin(s) allowed to call the API. |
+| `LLM_PROVIDER` | Yes for AI generation | `gemini` or `ollama`. |
+| `GEMINI_API_KEY` | Gemini only | API key for Google Gemini. |
+| `OLLAMA_BASE_URL` | Ollama only | URL of the running Ollama server. |
+| `OLLAMA_MODEL` | Ollama only | Name of the local Ollama model to use. |
+| `APP_PORT` | Optional | Port exposed by the Docker web service; defaults to `8080`. |
+
+## Project structure
+
+```text
+.
+├── Backend/             # FastAPI API, database models, migrations, and exports
+├── frontend/            # React application
+├── docker-compose.yml   # Local PostgreSQL, API, and web services
+├── .env.example         # Docker environment-variable template
+└── DEMO_SCRIPT.md       # Suggested product demo flow
+```
+
+## Verify your changes
+
+Run the frontend build:
+
+```powershell
+cd frontend
+npm ci
+npm run build
+```
+
+Run backend checks:
+
+```powershell
+cd Backend
+pip install -r requirements-dev.txt
+alembic upgrade head
+python scripts/smoke_health.py
+pytest -q
+```
+
+GitHub Actions runs the backend checks against PostgreSQL 16 and builds the frontend on every push and pull request.
